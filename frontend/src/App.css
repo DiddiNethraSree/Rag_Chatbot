@@ -1,0 +1,145 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0f0f13;
+  color: #e8e8f0;
+  min-height: 100vh;
+}
+
+.app {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.app-header {
+  text-align: center;
+  padding: 24px 0 16px;
+}
+
+.app-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.app-header p {
+  color: #888;
+  margin-top: 6px;
+  font-size: 0.95rem;
+}
+
+/* URL Section */
+.apikey-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.url-section {
+  background: #1a1a24;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid #2a2a3a;
+}
+
+.url-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.url-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.url-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.label-a {
+  color: #5b9ef8;
+}
+
+.label-b {
+  color: #f85b9e;
+}
+
+.url-input {
+  background: #0f0f13;
+  border: 1px solid #2a2a3a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #e8e8f0;
+  font-size: 14px;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+.url-input:focus {
+  outline: none;
+  border-color: #5b9ef8;
+}
+
+.url-input::placeholder {
+  color: #444;
+}
+
+.ingest-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #5b9ef8, #a855f7);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.ingest-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.ingest-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error-msg {
+  color: #f87171;
+  font-size: 13px;
+  margin-top: 10px;
+  text-align: center;
+}
+
+/* Main Layout */
+.main-layout {
+  display: grid;
+  grid-template-columns: 400px 1fr;
+  gap: 20px;
+  height: calc(100vh - 280px);
+  min-height: 500px;
+}
+
+/* Video Cards */
+.videos-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
