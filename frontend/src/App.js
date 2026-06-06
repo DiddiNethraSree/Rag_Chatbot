@@ -113,15 +113,39 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleIngest = async () => {
-    if (!urlA.trim() || !urlB.trim()) {
-      setError("Please enter both video URLs.");
-      return;
+  const validateInputs = () => {
+    if (!urlA.trim()) {
+      setError("❌ Please enter Video A URL (YouTube)");
+      return false;
+    }
+    if (!urlB.trim()) {
+      setError("❌ Please enter Video B URL (Instagram Reel)");
+      return false;
     }
     if (!apiKey.trim()) {
-      setError("Please enter your Gemini API key.");
-      return;
+      setError("❌ Please enter your Gemini API key (get free key at aistudio.google.com)");
+      return false;
     }
+
+    // Basic URL validation
+    const isValidUrlA = urlA.includes("youtube.com") || urlA.includes("youtu.be");
+    const isValidUrlB = urlB.includes("instagram.com") || urlB.includes("instagr.am");
+
+    if (!isValidUrlA) {
+      setError("❌ Video A must be a YouTube URL (youtube.com or youtu.be)");
+      return false;
+    }
+    if (!isValidUrlB) {
+      setError("❌ Video B must be an Instagram URL (instagram.com or instagr.am)");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleIngest = async () => {
+    if (!validateInputs()) return;
+
     setError("");
     setLoadingVideos(true);
     setIngested(false);
@@ -135,21 +159,24 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url_a: urlA, url_b: urlB, api_key: apiKey }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.detail || "Failed to ingest videos");
-      }
+
       const data = await res.json();
+
+      if (!res.ok) {
+        setError(`❌ ${data.detail || "Failed to ingest videos. Please check your URLs and try again."}`);
+        return;
+      }
+
       setVideoA(data.video_a);
       setVideoB(data.video_b);
       setIngested(true);
       setMessages([{
         role: "assistant",
-        content: `✅ Both videos loaded and indexed!\n\n**Video A:** ${data.video_a.title}\n**Video B:** ${data.video_b.title}\n\nAsk me anything — engagement rates, hook comparison, improvement suggestions, or creator details!`,
+        content: `✅ Both videos loaded and indexed!\n\n**Video A:** ${data.video_a.title}\n**Video B:** ${data.video_b.title}\n\nAsk me anything — engagement rates, hook comparison, improvements, and more!`,
         sources: [],
       }]);
     } catch (e) {
-      setError(e.message);
+      setError(`❌ Network Error: ${e.message || "Unable to connect to server. Make sure the backend is running on http://localhost:8000"}`);
     } finally {
       setLoadingVideos(false);
     }
@@ -185,6 +212,10 @@ export default function App() {
         body: JSON.stringify({ question, session_id: sessionId }),
       });
 
+      if (!res.ok) {
+        throw new Error("Failed to get response from server");
+      }
+
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let fullText = "";
@@ -213,7 +244,12 @@ export default function App() {
     } catch (e) {
       setMessages((prev) => {
         const updated = [...prev];
-        updated[updated.length - 1] = { role: "assistant", content: "Error: " + e.message, sources: [], streaming: false };
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: `⚠️ Error: ${e.message || "Unable to process your question. Please try again."}`,
+          sources: [],
+          streaming: false
+        };
         return updated;
       });
     } finally {
@@ -239,17 +275,7 @@ export default function App() {
 
         <div className="url-section">
           <div className="apikey-row">
-            <label className="url-label" style={{ color: "#a855f7" }}>Gemini API Key</label>
-            <input
-              className="url-input"
-              type="password"
-              placeholder="AIzaSy... (get free key at aistudio.google.com)"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              disabled={loadingVideos} />
-          </div>
-          <div className="apikey-row">
-            <label className="url-label" style={{ color: "#a855f7" }}>Gemini API Key</label>
+            <label className="url-label" style={{ color: "#a855f7" }}>🔑 Gemini API Key</label>
             <input
               className="url-input"
               type="password"
@@ -260,19 +286,19 @@ export default function App() {
           </div>
           <div className="url-row">
             <div className="url-input-group">
-              <label className="url-label label-a">Video A (YouTube)</label>
+              <label className="url-label label-a">▶️ Video A (YouTube)</label>
               <input
                 className="url-input"
-                placeholder="https://youtube.com/watch?v=..."
+                placeholder="https://youtube.com/watch?v=... or https://youtu.be/..."
                 value={urlA}
                 onChange={(e) => setUrlA(e.target.value)}
                 disabled={loadingVideos} />
             </div>
             <div className="url-input-group">
-              <label className="url-label label-b">Video B (Instagram Reel)</label>
+              <label className="url-label label-b">📷 Video B (Instagram Reel)</label>
               <input
                 className="url-input"
-                placeholder="https://www.instagram.com/reel/..."
+                placeholder="https://www.instagram.com/reel/... or https://instagr.am/..."
                 value={urlB}
                 onChange={(e) => setUrlB(e.target.value)}
                 disabled={loadingVideos} />
@@ -286,7 +312,7 @@ export default function App() {
         >
           {loadingVideos ? "⏳ Fetching & Indexing..." : "🚀 Analyze Videos"}
         </button>
-        {error && <div className="error-msg">⚠️ {error}</div>}
+        {error && <div className="error-msg">{error}</div>}
       </div><div className="main-layout">
         <div className="videos-panel">
           <VideoCard label="A" data={videoA} loading={loadingVideos} />
