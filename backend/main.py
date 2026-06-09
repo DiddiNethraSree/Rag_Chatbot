@@ -1,6 +1,8 @@
 import uuid
 import os
+import asyncio
 import logging
+from functools import partial
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -27,11 +29,30 @@ app.add_middleware(
 current_videos: dict = {}
 
 
+from typing import Optional, List
+
+class VideoDataInput(BaseModel):
+    title: str
+    creator: str
+    views: int
+    likes: int
+    comments: int
+    followers: int
+    engagement_rate: float
+    duration: int
+    upload_date: str
+    hashtags: List[str] = []
+    platform: str
+    hook_first_5s: str = ""
+    transcript: str = ""
+
 class IngestRequest(BaseModel):
     """Request model for video ingestion."""
     url_a: str
     url_b: str
     api_key: str
+    video_a_custom: Optional[VideoDataInput] = None
+    video_b_custom: Optional[VideoDataInput] = None
 
 
 class ChatRequest(BaseModel):
@@ -57,110 +78,123 @@ def root():
     }
 
 
+def _build_video_response(video: dict) -> dict:
+    """Extract safe response fields from video metadata."""
+    return {
+        "title": video.get("title", "Unknown"),
+        "creator": video.get("creator", "Unknown"),
+        "views": video.get("views", 0),
+        "likes": video.get("likes", 0),
+        "comments": video.get("comments", 0),
+        "followers": video.get("followers", 0),
+        "engagement_rate": video.get("engagement_rate", 0),
+        "engagement_note": video.get("engagement_note"),
+        "data_note": video.get("data_note"),
+        "duration": video.get("duration", 0),
+        "upload_date": video.get("upload_date", "Unknown"),
+        "hashtags": video.get("hashtags", []),
+        "platform": video.get("platform", "unknown"),
+        "hook_first_5s": video.get("hook_first_5s", "N/A"),
+        "description": video.get("description", ""),
+        "isCustom": video.get("isCustom", False),
+    }
+
+
+def _model_to_dict(model) -> Optional[dict]:
+    """Convert model to dictionary safely."""
+    if not model:
+        return None
+    return model.model_dump() if hasattr(model, "model_dump") else model.dict()
+
+
+def _ingest_videos_sync(
+    url_a: str,
+    url_b: str,
+    api_key: str,
+    video_a_custom: Optional[dict] = None,
+    video_b_custom: Optional[dict] = None,
+) -> dict:
+    """Blocking ingest work — run in a thread pool from the async endpoint."""
+    if not url_a or not url_a.strip():
+        raise ValueError("Video A URL is required")
+    if not url_b or not url_b.strip():
+        raise ValueError("Video B URL is required")
+    if not api_key or not api_key.strip():
+        raise ValueError("Gemini API key is required")
+
+    logger.info(f"Starting ingestion for URLs: {url_a[:50]}... and {url_b[:50]}...")
+
+    try:
+        if video_a_custom:
+            video_a = video_a_custom
+            video_a["label"] = "A"
+        else:
+            video_a = fetch_video_data(url_a, "A")
+        logger.info(f"✓ Video A fetched/provided: {video_a.get('title', 'Unknown')}")
+    except Exception as e:
+        logger.error(f"Error fetching video A: {str(e)}")
+        raise ValueError(f"Failed to fetch Video A: {str(e)[:100]}")
+
+    try:
+        if video_b_custom:
+            video_b = video_b_custom
+            video_b["label"] = "B"
+        else:
+            video_b = fetch_video_data(url_b, "B")
+        logger.info(f"✓ Video B fetched/provided: {video_b.get('title', 'Unknown')}")
+    except Exception as e:
+        logger.error(f"Error fetching video B: {str(e)}")
+        raise ValueError(f"Failed to fetch Video B: {str(e)[:100]}")
+
+    success = rag_engine.ingest_videos(video_a, video_b, api_key.strip())
+    if not success:
+        error_msg = rag_engine.last_error or "Unknown ingestion error"
+        logger.error(f"RAG ingestion failed: {error_msg}")
+        raise ValueError(error_msg)
+
+    logger.info("✓ Videos successfully ingested into RAG engine")
+    current_videos["A"] = video_a
+    current_videos["B"] = video_b
+
+    response = {
+        "status": "success",
+        "message": "Videos loaded and indexed successfully",
+        "video_a": _build_video_response(video_a),
+        "video_b": _build_video_response(video_b),
+    }
+    logger.info("✓ Ingest request completed successfully")
+    return response
+
+
 @app.post("/ingest")
 async def ingest_videos(req: IngestRequest):
     """
     Ingest two videos (YouTube + Instagram) and prepare RAG system.
-    
-    Args:
-        req: IngestRequest with url_a, url_b, and api_key
-    
-    Returns:
-        Dictionary with video metadata and status
+
+    Video fetching and embedding are CPU/network-bound, so they run in a
+    thread pool to avoid blocking the event loop.
     """
     try:
-        # Validate input
-        if not req.url_a or not req.url_a.strip():
-            raise ValueError("Video A URL is required")
-        if not req.url_b or not req.url_b.strip():
-            raise ValueError("Video B URL is required")
-        if not req.api_key or not req.api_key.strip():
-            raise ValueError("Gemini API key is required")
-
-        logger.info(f"Starting ingestion for URLs: {req.url_a[:50]}... and {req.url_b[:50]}...")
-
-        # Fetch video data
-        try:
-            video_a = fetch_video_data(req.url_a, "A")
-            logger.info(f"✓ Video A fetched: {video_a.get('title', 'Unknown')}")
-        except Exception as e:
-            logger.error(f"Error fetching video A: {str(e)}")
-            raise ValueError(f"Failed to fetch Video A: {str(e)[:100]}")
-
-        try:
-            video_b = fetch_video_data(req.url_b, "B")
-            logger.info(f"✓ Video B fetched: {video_b.get('title', 'Unknown')}")
-        except Exception as e:
-            logger.error(f"Error fetching video B: {str(e)}")
-            raise ValueError(f"Failed to fetch Video B: {str(e)[:100]}")
-
-        # Ingest into RAG engine
-        try:
-            success = rag_engine.ingest_videos(video_a, video_b, req.api_key)
-            if not success:
-                error_msg = rag_engine.last_error or "Unknown ingestion error"
-                logger.error(f"RAG ingestion failed: {error_msg}")
-                raise ValueError(error_msg)
-            logger.info("✓ Videos successfully ingested into RAG engine")
-        except Exception as e:
-            logger.error(f"RAG ingestion error: {str(e)}")
-            raise ValueError(f"Failed to process videos in RAG system: {str(e)[:100]}")
-
-        # Store videos in current session
-        current_videos["A"] = video_a
-        current_videos["B"] = video_b
-
-        # Prepare response with safe field extraction
-        video_a_response = {
-            "title": video_a.get("title", "Unknown"),
-            "creator": video_a.get("creator", "Unknown"),
-            "views": video_a.get("views", 0),
-            "likes": video_a.get("likes", 0),
-            "comments": video_a.get("comments", 0),
-            "followers": video_a.get("followers", 0),
-            "engagement_rate": video_a.get("engagement_rate", 0),
-            "duration": video_a.get("duration", 0),
-            "upload_date": video_a.get("upload_date", "Unknown"),
-            "hashtags": video_a.get("hashtags", []),
-            "platform": video_a.get("platform", "unknown"),
-            "hook_first_5s": video_a.get("hook_first_5s", "N/A"),
-        }
-
-        video_b_response = {
-            "title": video_b.get("title", "Unknown"),
-            "creator": video_b.get("creator", "Unknown"),
-            "views": video_b.get("views", 0),
-            "likes": video_b.get("likes", 0),
-            "comments": video_b.get("comments", 0),
-            "followers": video_b.get("followers", 0),
-            "engagement_rate": video_b.get("engagement_rate", 0),
-            "duration": video_b.get("duration", 0),
-            "upload_date": video_b.get("upload_date", "Unknown"),
-            "hashtags": video_b.get("hashtags", []),
-            "platform": video_b.get("platform", "unknown"),
-            "hook_first_5s": video_b.get("hook_first_5s", "N/A"),
-        }
-
-        response = {
-            "status": "success",
-            "message": "Videos loaded and indexed successfully",
-            "video_a": video_a_response,
-            "video_b": video_b_response,
-        }
-
-        logger.info("✓ Ingest request completed successfully")
-        return response
-
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(
+            None,
+            partial(
+                _ingest_videos_sync,
+                req.url_a,
+                req.url_b,
+                req.api_key,
+                _model_to_dict(req.video_a_custom),
+                _model_to_dict(req.video_b_custom),
+            ),
+        )
     except ValueError as e:
-        # Expected validation errors
         logger.warning(f"Validation error in ingest: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        # Unexpected errors
         logger.error(f"Unexpected error in ingest: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail=f"An unexpected error occurred: {str(e)[:100]}"
+            detail=f"An unexpected error occurred: {str(e)[:100]}",
         )
 
 
@@ -281,22 +315,3 @@ def health_check():
     }
 
 
-# Error handlers
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """Handle HTTP exceptions."""
-    logger.error(f"HTTP error {exc.status_code}: {exc.detail}")
-    return {
-        "error": exc.detail,
-        "status_code": exc.status_code,
-    }
-
-
-@app.exception_handler(Exception)
-async def general_exception_handler(request, exc):
-    """Handle general exceptions."""
-    logger.error(f"Unexpected error: {str(exc)}")
-    return {
-        "error": "An unexpected error occurred. Please try again.",
-        "detail": str(exc)[:100],
-    }
