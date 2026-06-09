@@ -72,7 +72,7 @@ function VideoCard({ label, data, loading, onEdit }) {
       )}
 
       <div className="stats-grid">
-        <StatBadge label="Views" value={formatNum(data.views)} icon="👁️" />
+        <StatBadge label="Views" value={(data.views === 0 && data.likes > 0) ? "N/A" : formatNum(data.views)} icon="👁️" />
         <StatBadge label="Likes" value={formatNum(data.likes)} icon="❤️" />
         <StatBadge label="Comments" value={formatNum(data.comments)} icon="💬" />
         <StatBadge label="Followers" value={formatNum(data.followers)} icon="👥" />

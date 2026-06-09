@@ -239,11 +239,14 @@ class RAGEngine:
                     "(view count not available)"
                 )
 
+            views_val = video.get("views", 0)
+            views_str = f"{views_val:,}" if (views_val > 0 or video.get("likes", 0) == 0) else "N/A (Hidden/Not Exposed)"
+
             lines.append(f"""
 Video {label} ({video.get('platform', 'unknown').upper()}):
   Title: {video.get('title', 'N/A')}
   Creator: @{video.get('creator', 'Unknown')} ({video.get('followers', 0):,} followers)
-  Views: {video.get('views', 0):,} | Likes: {video.get('likes', 0):,} | Comments: {video.get('comments', 0):,}
+  Views: {views_str} | Likes: {video.get('likes', 0):,} | Comments: {video.get('comments', 0):,}
   Engagement: {engagement_line}
   Duration: {video.get('duration', 0)}s
   Hook (first 5s): {(video.get('hook_first_5s') or 'N/A')[:150]}
