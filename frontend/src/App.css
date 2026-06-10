@@ -1105,3 +1105,26 @@ body {
   0%, 80%, 100% { transform: scale(0); }
   40% { transform: scale(1); }
 }
+
+/* App Footer Styling */
+.app-footer {
+  text-align: center;
+  padding: 24px 0;
+  margin-top: 30px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  color: #888899;
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+
+.app-footer a {
+  color: #5b9ef8;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.app-footer a:hover {
+  color: #a855f7;
+  text-decoration: underline;
+}

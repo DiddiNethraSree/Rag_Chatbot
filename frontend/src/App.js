@@ -611,6 +611,10 @@ export default function App() {
         </div>
       </div>
 
+      <footer className="app-footer">
+        <p>© 2026 Diddi Nethra Sree. All Rights Reserved. | Designed & Developed by <a href="https://github.com/DiddiNethraSree" target="_blank" rel="noopener noreferrer">Diddi Nethra Sree</a></p>
+      </footer>
+
       {/* Manual Data Override Modal */}
       {isEditModalOpen && (
         <div className="modal-backdrop">
