@@ -220,11 +220,6 @@ export default function App() {
       setError("❌ Please enter Video B URL (Instagram Reel)");
       return false;
     }
-    if (!apiKey.trim()) {
-      setError("❌ Please enter your Gemini API key");
-      return false;
-    }
-
     // URL validation
     const isValidUrlA = urlA.includes("youtube.com") || urlA.includes("youtu.be");
     const isValidUrlB = urlB.includes("instagram.com") || urlB.includes("instagr.am");
@@ -489,7 +484,7 @@ export default function App() {
             <input
               className="url-input"
               type="password"
-              placeholder="Get free key at https://aistudio.google.com"
+              placeholder="Get free key at https://aistudio.google.com (Optional if set on server)"
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               disabled={loadingVideos}

@@ -119,8 +119,13 @@ def _ingest_videos_sync(
         raise ValueError("Video A URL is required")
     if not url_b or not url_b.strip():
         raise ValueError("Video B URL is required")
-    if not api_key or not api_key.strip():
-        raise ValueError("Gemini API key is required")
+    # Fallback to server environment key if none is provided in the payload
+    resolved_api_key = api_key.strip() if api_key else ""
+    if not resolved_api_key:
+        resolved_api_key = os.getenv("GEMINI_API_KEY", "").strip()
+        
+    if not resolved_api_key:
+        raise ValueError("Gemini API key is required. Enter it in the UI or configure GEMINI_API_KEY on the server.")
 
     logger.info(f"Starting ingestion for URLs: {url_a[:50]}... and {url_b[:50]}...")
 
@@ -146,7 +151,7 @@ def _ingest_videos_sync(
         logger.error(f"Error fetching video B: {str(e)}")
         raise ValueError(f"Failed to fetch Video B: {str(e)[:100]}")
 
-    success = rag_engine.ingest_videos(video_a, video_b, api_key.strip())
+    success = rag_engine.ingest_videos(video_a, video_b, resolved_api_key)
     if not success:
         error_msg = rag_engine.last_error or "Unknown ingestion error"
         logger.error(f"RAG ingestion failed: {error_msg}")
