@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import "./App.css";
 
-// Backend URL — defaults to 8001 (8000 can get stuck on Windows after crashes)
-const API = process.env.REACT_APP_API_URL || "http://localhost:8001";
+// Backend URL — defaults to 8000
+const API = process.env.REACT_APP_API_URL || "http://localhost:8000";
 
 console.log("🔗 API Endpoint:", API);
 
@@ -239,7 +239,7 @@ export default function App() {
     }
 
     if (!backendReady) {
-      setError("❌ Backend not ready. Make sure to run: uvicorn main:app --reload --host 127.0.0.1 --port 8001");
+      setError("❌ Backend not ready. Make sure to run: uvicorn main:app --reload --host 127.0.0.1 --port 8000");
       return false;
     }
 
@@ -301,7 +301,7 @@ export default function App() {
         sources: [],
       }]);
     } catch (e) {
-      setError(`❌ Network Error: ${e.message}\n\n💡 Make sure the backend is running:\n\`uvicorn main:app --reload --host 127.0.0.1 --port 8001\``);
+      setError(`❌ Network Error: ${e.message}\n\n💡 Make sure the backend is running:\n\`uvicorn main:app --reload --host 127.0.0.1 --port 8000\``);
       console.error("Ingest error:", e);
     } finally {
       setLoadingVideos(false);

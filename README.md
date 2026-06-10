@@ -144,12 +144,12 @@ cp .env.example .env
 Edit the newly created `.env` file to set:
 ```env
 GEMINI_API_KEY=your_gemini_api_key_here
-SERVER_PORT=8001
+SERVER_PORT=8000
 SERVER_HOST=127.0.0.1
 ```
 Start the backend development server:
 ```bash
-python -m uvicorn main:app --reload --host 127.0.0.1 --port 8001
+python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 ### 2. Frontend Setup
