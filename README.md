@@ -11,6 +11,7 @@ A full-stack RAG (Retrieval-Augmented Generation) chatbot application to ingest,
 
 - **Cross-Platform Ingestion**: Scrapes video transcripts and metadata from YouTube and Instagram Reels.
 - **RAG Chatbot**: Utilizes LangChain and Google's Gemini AI (`gemini-embedding-001` & `gemini-flash-lite-latest`) for precise comparative analysis.
+- **Server-Side API Keys**: Clean frontend UI with no API key inputs. The application securely reads the Gemini API key from the backend environment configuration.
 - **Vector Search**: Automatically chunks, embeds, and stores video contexts in ChromaDB for semantic retrieval.
 - **Data Overrides**: Includes an interactive modal to edit or input metrics manually if automated scraping is blocked.
 - **Premium UI**: Modern, fully responsive dark-mode dashboard with real-time markdown streaming and source citations.
@@ -49,4 +50,4 @@ cd frontend
 npm install
 npm start
 ```
-The application will open automatically at `http://localhost:3000`.
+The application will open automatically at `http://localhost:3000`. Simply paste your URLs and analyze!
