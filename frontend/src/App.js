@@ -150,7 +150,6 @@ function ChatMessage({ msg }) {
 export default function App() {
   const [urlA, setUrlA] = useState("");
   const [urlB, setUrlB] = useState("");
-  const [apiKey, setApiKey] = useState("");
   const [videoA, setVideoA] = useState(null);
   const [videoB, setVideoB] = useState(null);
   const [loadingVideos, setLoadingVideos] = useState(false);
@@ -261,7 +260,7 @@ export default function App() {
       const body = {
         url_a: urlA,
         url_b: urlB,
-        api_key: apiKey,
+        api_key: "",
       };
 
       if (customVidA) body.video_a_custom = customVidA;
@@ -479,18 +478,6 @@ export default function App() {
         </header>
 
         <div className="url-section">
-          <div className="apikey-row">
-            <label className="url-label">🔑 Gemini API Key</label>
-            <input
-              className="url-input"
-              type="password"
-              placeholder="Get free key at https://aistudio.google.com (Optional if set on server)"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              disabled={loadingVideos}
-            />
-          </div>
-
           <div className="url-row">
             <div className="url-input-group">
               <label className="url-label label-a">▶️ Video A (YouTube)</label>
